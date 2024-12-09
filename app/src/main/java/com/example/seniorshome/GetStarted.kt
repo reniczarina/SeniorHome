@@ -1,27 +1,48 @@
 package com.example.seniorshome
 
+import android.media.MediaPlayer
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.seniorshome.R
+import com.google.firebase.auth.FirebaseAuth
 
 @Composable
 fun GetStartedScreen(navController: NavController) {
+    // Firebase Authentication instance
+    val firebaseAuth = FirebaseAuth.getInstance()
+
+    // Remember the MediaPlayer and control its state
+    val context = LocalContext.current
+    val mediaPlayer = remember { MediaPlayer.create(context, R.raw.welcometosh) }
+    var isSoundPlayed by remember { mutableStateOf(false) }  // Track if sound has been played
+
+    // Sound effect when user clicks "Get Started"
+    LaunchedEffect(isSoundPlayed) {
+        if (isSoundPlayed) {
+            mediaPlayer.start()
+            mediaPlayer.setOnCompletionListener {
+                it.release() // Release after completion
+            }
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -38,7 +59,6 @@ fun GetStartedScreen(navController: NavController) {
         Spacer(modifier = Modifier.height(12.dp))
 
         // Title
-
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -72,7 +92,6 @@ fun GetStartedScreen(navController: NavController) {
                         shape = RoundedCornerShape(8.dp)
                     )
                     .padding(12.dp)
-                      // Makes the Box scrollable
             ) {
                 Text(
                     text = "Our app is designed to empower seniors in managing their daily tasks and medication schedules with ease. " +
@@ -93,8 +112,17 @@ fun GetStartedScreen(navController: NavController) {
         // Get Started Button
         Button(
             onClick = {
-                // Navigate to SeniorScreen when clicked
-                navController.navigate("senior_screen")
+                // Play sound effect when the Get Started button is clicked
+                isSoundPlayed = true  // Trigger sound playback
+
+                // Check if user is authenticated
+                if (firebaseAuth.currentUser != null) {
+                    // Navigate to SeniorScreen if the user is authenticated
+                    navController.navigate("dashboard")
+                } else {
+                    // Navigate to LoginScreen if the user is not authenticated
+                    navController.navigate("senior_screen")
+                }
             },
             modifier = Modifier
                 .fillMaxWidth()

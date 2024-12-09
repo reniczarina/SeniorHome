@@ -2,6 +2,7 @@
 
 package com.example.seniorshome
 
+import android.media.MediaPlayer
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -38,7 +39,7 @@ data class Medication(
     val days: List<String> = emptyList(), // Change to List<String>
     val alarmEnabled: Boolean = false,
     val alarmSound: String = "",
-    val notifyFamily: Boolean = false,
+    val familyPhoneNumber: String = "",
     val isOn: Boolean = false
 )
 
@@ -129,7 +130,8 @@ fun MedicationScreen(navController: NavController) {
                             taskName = medication.name,
                             taskTime = medication.time,
                             alarmSoundUri = medication.alarmSound,
-                            days = medication.days
+                            days = medication.days,
+                            phoneNumber = medication.familyPhoneNumber
                         )
                     } else {
                         cancelAlarm(context, medication.name, medication.days)
@@ -275,6 +277,16 @@ fun MedicationItem(
                             // Call onToggle to update medication status
                             onToggle(isChecked)
 
+                            // Play the appropriate sound when switching on or off
+                            val soundRes = if (isChecked) R.raw.alarmon else R.raw.alarmoff
+                            val mediaPlayer = MediaPlayer.create(context, soundRes)
+                            mediaPlayer.start()
+
+                            // Release MediaPlayer resources after playback
+                            mediaPlayer.setOnCompletionListener {
+                                mediaPlayer.release()
+                            }
+
                             // Trigger alarm logic if the switch is turned ON
                             if (isChecked) {
                                 // Schedule alarm when turned on
@@ -283,7 +295,8 @@ fun MedicationItem(
                                     taskName = medication.name,
                                     taskTime = medication.time,
                                     alarmSoundUri = medication.alarmSound,
-                                    days = medication.days
+                                    days = medication.days,
+                                    phoneNumber = medication.familyPhoneNumber
                                 )
                             } else {
                                 // Cancel alarm when turned off
@@ -299,7 +312,20 @@ fun MedicationItem(
                     )
                 }
 
-                IconButton(onClick = onDelete) {
+                IconButton(
+                    onClick = {
+                        val mediaPlayer = MediaPlayer.create(context, R.raw.deletemedication) // Sound file from res/raw folder
+                        mediaPlayer.start()
+
+                        // Release MediaPlayer resources after playback
+                        mediaPlayer.setOnCompletionListener {
+                            mediaPlayer.release()
+                        }
+
+                        // Execute the onDelete action after playing the sound
+                        onDelete()
+                    }
+                ) {
                     Icon(
                         imageVector = Icons.Default.Delete,
                         contentDescription = "Delete Medication",

@@ -8,5 +8,5 @@ data class Task(
     val isOn: Boolean = false,
     val alarmEnabled: Boolean = false,
     val alarmSound: String = "",
-    val familyEmail: Boolean = false
+    val familyPhoneNumber: String = ""
 )

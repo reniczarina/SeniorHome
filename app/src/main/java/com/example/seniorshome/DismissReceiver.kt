@@ -1,9 +1,9 @@
 package com.example.seniorshome
 
+import android.app.NotificationManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.app.NotificationManager
 import android.media.MediaPlayer
 
 class DismissReceiver : BroadcastReceiver() {
@@ -22,8 +22,8 @@ class DismissReceiver : BroadcastReceiver() {
         // Stop the alarm sound if it's playing
         mediaPlayer?.let {
             if (it.isPlaying) {
-                it.stop()
-                it.release()
+                it.stop() // Stop the sound
+                it.release() // Release the MediaPlayer resources
             }
             mediaPlayer = null // Reset the mediaPlayer instance
         }

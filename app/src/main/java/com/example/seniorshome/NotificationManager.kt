@@ -18,7 +18,7 @@ fun sendNotification(context: Context, taskName: String, taskTime: String) {
     val notification = NotificationCompat.Builder(context, "taskChannel")
         .setSmallIcon(R.drawable.notification_icon) // Ensure this icon exists in your drawable
         .setContentTitle(taskName)
-        .setContentText("$taskTime")
+        .setContentText(taskTime)
         .setPriority(NotificationCompat.PRIORITY_DEFAULT)
         // Optional: Add sound or vibration if needed
         .setDefaults(Notification.DEFAULT_ALL) // This will use the default system sound/vibration

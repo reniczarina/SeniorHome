@@ -1,6 +1,8 @@
 package com.example.seniorshome
 
 import android.annotation.SuppressLint
+import android.content.Context
+import android.media.MediaPlayer
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -15,6 +17,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -24,7 +27,7 @@ import java.util.Calendar
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdvancedTimePickerExample(
-    onConfirm: (String) -> Unit,  // Change this to accept a formatted time string
+    onConfirm: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val currentTime = Calendar.getInstance()
@@ -35,14 +38,27 @@ fun AdvancedTimePickerExample(
         is24Hour = true,
     )
 
-    /** Determines whether the time picker is in dial mode or input mode */
+    val context = LocalContext.current // Use LocalContext to get the Context
     var showDial by remember { mutableStateOf(true) }
-
-    /** The icon used for toggling between dial and input modes */
     val toggleIcon = if (showDial) {
         Icons.Filled.EditCalendar
     } else {
         Icons.Filled.AccessTime
+    }
+
+    var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
+
+    // Function to play sound
+    fun playSound() {
+        mediaPlayer?.stop()
+        mediaPlayer?.release()
+        mediaPlayer = MediaPlayer.create(context, R.raw.timeconfirmation).apply {
+            start()
+            setOnCompletionListener {
+                release()
+                mediaPlayer = null
+            }
+        }
     }
 
     AdvancedTimePickerDialog(
@@ -55,15 +71,11 @@ fun AdvancedTimePickerExample(
                 if (timePickerState.hour == 0) 12 else timePickerState.hour
             }
             val amPm = if (timePickerState.hour >= 12) "PM" else "AM"
-
-            // Format minutes to always display two digits
             val formattedMinutes = String.format("%02d", timePickerState.minute)
-
-            // Combine hour, minutes, and AM/PM
             val formattedTime = "$hourIn12HrFormat:$formattedMinutes $amPm"
 
-            // Pass the formatted time as a string
-            onConfirm(formattedTime) // Send the formatted time string
+            playSound() // Play sound when time is confirmed
+            onConfirm(formattedTime)
         },
         toggle = {
             IconButton(onClick = { showDial = !showDial }) {
@@ -75,10 +87,8 @@ fun AdvancedTimePickerExample(
         }
     ) {
         if (showDial) {
-            // Dial-based Time Picker
             TimePicker(state = timePickerState)
         } else {
-            // Input-based Time Picker
             TimeInput(state = timePickerState)
         }
     }
@@ -98,7 +108,7 @@ fun AdvancedTimePickerDialog(
     ) {
         Surface(
             shape = MaterialTheme.shapes.extraLarge,
-            color = Color.LightGray,
+            color = Color.White,
             tonalElevation = 6.dp,
             modifier = Modifier
                 .width(IntrinsicSize.Min)
@@ -132,8 +142,8 @@ fun AdvancedTimePickerDialog(
                 ) {
                     toggle()
                     Spacer(modifier = Modifier.weight(1f))
-                    TextButton(onClick = onDismiss) { Text("Cancel",color = Color.Red) }
-                    Button(onClick = onConfirm) { Text("OK",color = Color(0xFF004d00)) }
+                    TextButton(onClick = onDismiss) { Text("Cancel",color = Color.Black) }
+                    TextButton(onClick = onConfirm) { Text("OK",color = Color.Black) }
                 }
             }
         }

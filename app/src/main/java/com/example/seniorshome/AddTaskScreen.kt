@@ -25,11 +25,13 @@ import com.google.firebase.database.FirebaseDatabase
 import android.content.Intent
 import android.provider.MediaStore
 import android.app.Activity
+import android.media.MediaPlayer
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
-
+import androidx.compose.ui.text.TextStyle
 
 // Request code for picking an audio file
 private const val PICK_AUDIO_REQUEST_CODE = 1
@@ -47,6 +49,7 @@ fun AddTaskScreen(navController: NavController) {
     var familyNotificationEnabled by remember { mutableStateOf(false) }
     var familyEmail by remember { mutableStateOf("") }
     var selectedDays by remember { mutableStateOf(mutableListOf<String>()) }
+    var familyPhoneNumber by remember { mutableStateOf("") }
 
     // Dialog states
     var showTimePickerDialog by remember { mutableStateOf(false) }
@@ -58,6 +61,29 @@ fun AddTaskScreen(navController: NavController) {
         selectedTime = formattedTime
         // Dismiss the dialog after selection
         showTimePickerDialog = false
+    }
+    var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
+
+    // Function to play sound
+    fun playSound(resId: Int) {
+        try {
+            // Release any previous instance of MediaPlayer if it exists
+            mediaPlayer?.stop()
+            mediaPlayer?.release()
+
+            // Create a new MediaPlayer and start the sound
+            mediaPlayer = MediaPlayer.create(context, resId).apply {
+                start()
+                setOnCompletionListener {
+                    release()
+                    mediaPlayer = null // Set to null after playback is complete
+                    Log.d("Sound", "Playback completed and MediaPlayer released.")
+                }
+            }
+            Log.d("Sound", "Sound played: $resId")
+        } catch (e: Exception) {
+            Log.e("Sound", "Error playing sound: ${e.message}")
+        }
     }
 
     Column(
@@ -92,7 +118,12 @@ fun AddTaskScreen(navController: NavController) {
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.weight(1f))
-            IconButton(onClick = { navController.navigate("dashboard") }) {
+            IconButton(
+                onClick = {
+                    playSound(R.raw.dashboard) // Play sound
+                    navController.navigate("dashboard") // Navigate to dashboard
+                }
+            ) {
                 Icon(
                     imageVector = Icons.Filled.Home,
                     contentDescription = "Home",
@@ -136,11 +167,17 @@ fun AddTaskScreen(navController: NavController) {
                 )
             }
 
+            // OutlinedTextField for Task Name
             OutlinedTextField(
                 value = taskName,
                 onValueChange = { taskName = it },
                 label = { Text("Task Name") },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        // Play sound when the OutlinedTextField is clicked
+                        playSound(R.raw.addtaskname)
+                    },
                 singleLine = true,
                 colors = TextFieldDefaults.outlinedTextFieldColors(
                     focusedTextColor = Color.Black,
@@ -149,12 +186,18 @@ fun AddTaskScreen(navController: NavController) {
                     unfocusedLabelColor = Color.Black,
                     containerColor = Color.Transparent
                 ),
-                textStyle = LocalTextStyle.current.copy(fontStyle = FontStyle.Italic)
+                textStyle = TextStyle(fontStyle = FontStyle.Italic)
             )
+
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(
                     checked = alarmSoundEnabled,
-                    onCheckedChange = { alarmSoundEnabled = it }
+                    onCheckedChange = { isChecked ->
+                        alarmSoundEnabled = isChecked
+                        if (isChecked) {
+                            playSound(R.raw.enablealarmsoundtask) // Replace with the correct resource ID
+                        }
+                    }
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(text = "Enable Alarm Sound")
@@ -172,18 +215,23 @@ fun AddTaskScreen(navController: NavController) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(
                         checked = familyNotificationEnabled,
-                        onCheckedChange = { familyNotificationEnabled = it }
+                        onCheckedChange = { isChecked ->
+                            familyNotificationEnabled = isChecked
+                            if (isChecked) {
+                                playSound(R.raw.notifytaskmissed) // Replace with the correct resource ID
+                            }
+                        }
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(text = "Notify Family if Missed")
                 }
                 if (familyNotificationEnabled) {
                     OutlinedTextField(
-                        value = familyEmail,
-                        onValueChange = { familyEmail = it },
-                        label = { Text("Family's Email") },
+                        value = familyPhoneNumber,
+                        onValueChange = { familyPhoneNumber = it },
+                        label = { Text("Family's Phone Number") },
                         modifier = Modifier.fillMaxWidth(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                         singleLine = true,
                         colors = TextFieldDefaults.outlinedTextFieldColors(
                             focusedTextColor = Color.Black,
@@ -195,6 +243,7 @@ fun AddTaskScreen(navController: NavController) {
                         textStyle = LocalTextStyle.current.copy(fontStyle = FontStyle.Italic)
                     )
                 }
+
             }
             Text(text = "Set Schedule", fontWeight = FontWeight.Bold)
             SelectDaysDropdown(selectedDays = selectedDays)
@@ -202,7 +251,10 @@ fun AddTaskScreen(navController: NavController) {
 
         // Save Button
         Button(
-            onClick = { showSaveDialog = true },
+            onClick = {
+                playSound(R.raw.taskconfirmation) // Replace with the correct resource ID
+                showSaveDialog = true
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 8.dp),
@@ -210,6 +262,7 @@ fun AddTaskScreen(navController: NavController) {
         ) {
             Text(text = "Save", color = Color.White, fontStyle = FontStyle.Italic)
         }
+
     }
 
     // Save Confirmation Dialog
@@ -233,7 +286,7 @@ fun AddTaskScreen(navController: NavController) {
                             isOn = false,  // Initially off
                             alarmEnabled = alarmSoundEnabled,
                             alarmSound = selectedAlarmSound,
-                            familyEmail = familyNotificationEnabled,
+                            familyPhoneNumber = if (familyNotificationEnabled) familyPhoneNumber else "" // Pass the phone number only if enabled
                         )
                         saveTaskToFirebase(database, task)
 
@@ -243,7 +296,8 @@ fun AddTaskScreen(navController: NavController) {
                             taskName = taskName,
                             taskTime = selectedTime,
                             alarmSoundUri = selectedAlarmSound,
-                            days = selectedDays // Pass the list of selected days
+                            days = selectedDays, // Pass the list of selected days
+                            phoneNumber = familyPhoneNumber
                         )
 
                         // Navigate to the Dashboard and close the dialog
@@ -279,6 +333,7 @@ fun saveTaskToFirebase(database: DatabaseReference, task: Task) {
         }
     }
 }
+
 @Composable
 fun TaskAlarmSoundSelector(selectedAlarmSound: String, onSoundSelected: (String) -> Unit) {
     val alarmSounds = listOf("Beep", "Pick Audio")
@@ -337,33 +392,67 @@ fun TaskAlarmSoundSelector(selectedAlarmSound: String, onSoundSelected: (String)
 fun SelectDaysDropdown(selectedDays: MutableList<String>) {
     val daysOfWeek = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "Everyday")
     var expanded by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
+
+    // Function to play sound
+    fun playSound(resId: Int) {
+        try {
+            mediaPlayer?.stop()
+            mediaPlayer?.release()
+
+            mediaPlayer = MediaPlayer.create(context, resId).apply {
+                start()
+                setOnCompletionListener {
+                    release()
+                    mediaPlayer = null // Set to null after playback completes
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("Sound", "Error playing sound: ${e.message}")
+        }
+    }
 
     Column {
-        TextButton(onClick = { expanded = true }) {
-            Text("Select Days", fontStyle = FontStyle.Italic, color = Color(0xFF0B4413))
+        // Button to open dropdown and play sound
+        TextButton(
+            onClick = {
+                expanded = true
+                playSound(R.raw.selectdaystask) // Replace with the correct resource ID
+            }
+        ) {
+            Text(
+                text = "Select Days",
+                fontStyle = FontStyle.Italic,
+                color = Color(0xFF0B4413)
+            )
         }
+
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false }
         ) {
             daysOfWeek.forEach { day ->
+                val isChecked = remember { mutableStateOf(selectedDays.contains(day)) }
+
                 DropdownMenuItem(
                     text = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Checkbox(
-                                checked = selectedDays.contains(day),
-                                onCheckedChange = { isChecked ->
-                                    if (isChecked) {
-                                        selectedDays.add(day)
+                                checked = isChecked.value,
+                                onCheckedChange = { checked ->
+                                    isChecked.value = checked
+                                    if (checked) {
+                                        selectedDays.add(day) // Enable the day
                                     } else {
-                                        selectedDays.remove(day)
+                                        selectedDays.remove(day) // Disable the day
                                     }
                                 }
                             )
                             Text(text = day)
                         }
                     },
-                    onClick = { /* No action needed here */ }
+                    onClick = { /* No action needed */ }
                 )
             }
         }
@@ -378,6 +467,9 @@ fun SelectDaysDropdown(selectedDays: MutableList<String>) {
         }
     }
 }
+
+
+
 
 @Preview(showBackground = true)
 @Composable

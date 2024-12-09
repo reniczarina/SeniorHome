@@ -2,6 +2,7 @@
 
 package com.example.seniorshome
 
+import android.media.MediaPlayer
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -111,7 +112,8 @@ fun DashboardScreen(navController: NavController) {
                             taskName = task.name,
                             taskTime = task.time,
                             alarmSoundUri = task.alarmSound,
-                            days = task.days
+                            days = task.days,
+                            phoneNumber = task.familyPhoneNumber
                         )
                     } else {
                         cancelAlarm(context, task.name, task.days)
@@ -141,7 +143,6 @@ fun DashboardScreen(navController: NavController) {
     }
 }
 
-
 @Composable
 fun DeleteTaskDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
     AlertDialog(
@@ -155,7 +156,10 @@ fun DeleteTaskDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
         },
         confirmButton = {
             Button(
-                onClick = onConfirm,
+                onClick = {
+                    // Call the confirm action directly
+                    onConfirm()
+                },
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Red) // Set DELETE button color to Red
             ) {
                 Text("Delete", color = Color.White) // DELETE text in white
@@ -290,6 +294,16 @@ fun TaskItem(
                             // Call onToggle to update task status
                             onToggle(isChecked)
 
+                            // Play the appropriate sound when switching on or off
+                            val soundRes = if (isChecked) R.raw.alarmon else R.raw.alarmoff
+                            val mediaPlayer = MediaPlayer.create(context, soundRes)
+                            mediaPlayer.start()
+
+                            // Release MediaPlayer resources after playback
+                            mediaPlayer.setOnCompletionListener {
+                                mediaPlayer.release()
+                            }
+
                             // Trigger alarm logic based on the switch state
                             if (isChecked) {
                                 // Schedule alarm when turned on
@@ -298,7 +312,8 @@ fun TaskItem(
                                     taskName = task.name,
                                     taskTime = task.time,
                                     alarmSoundUri = task.alarmSound,
-                                    days = task.days
+                                    days = task.days,
+                                    phoneNumber = task.familyPhoneNumber
                                 )
                             } else {
                                 // Cancel alarm when turned off
@@ -314,7 +329,20 @@ fun TaskItem(
                     )
                 }
 
-                IconButton(onClick = onDelete) {
+                IconButton(
+                    onClick = {
+                        val mediaPlayer = MediaPlayer.create(context, R.raw.deletetask) // Sound file from res/raw folder
+                        mediaPlayer.start()
+
+                        // Release MediaPlayer resources after playback
+                        mediaPlayer.setOnCompletionListener {
+                            mediaPlayer.release()
+                        }
+
+                        // Execute the onDelete action after playing the sound
+                        onDelete()
+                    }
+                ) {
                     Icon(
                         imageVector = Icons.Default.Delete,
                         contentDescription = "Delete Task",
@@ -325,8 +353,6 @@ fun TaskItem(
         }
     }
 }
-
-
 
 
 // Firebase Functions

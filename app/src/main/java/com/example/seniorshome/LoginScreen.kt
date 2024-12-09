@@ -1,5 +1,6 @@
 package com.example.seniorshome
 
+import android.media.MediaPlayer
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -141,24 +142,38 @@ fun LoginScreen(navController: NavController) {
 
         Button(
             onClick = {
+                if (emailUsername.value.isEmpty() || password.value.isEmpty()) {
+                    errorMessage = "Please fill in all fields."
+                    return@Button
+                }
+
                 auth.signInWithEmailAndPassword(emailUsername.value, password.value)
                     .addOnCompleteListener { task ->
                         if (task.isSuccessful) {
+
+                            val mediaPlayer = MediaPlayer.create(context, R.raw.welcome)
+                            mediaPlayer.start()
+                            mediaPlayer.setOnCompletionListener { mediaPlayer.release() }
+
                             Toast.makeText(context, "Login successful", Toast.LENGTH_SHORT).show()
                             navController.navigate("dashboard") {
                                 popUpTo("login") { inclusive = true }
                             }
                         } else {
-                            errorMessage = task.exception?.message ?: "Login failed"
+                            errorMessage = "Invalid email or password. Please try again."
                         }
                     }
-            },
+            }
+            ,
             shape = RoundedCornerShape(50),
-            modifier = Modifier.fillMaxWidth(0.85f).height(50.dp),
+            modifier = Modifier
+                .fillMaxWidth(0.85f)
+                .height(50.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF004d00))
         ) {
             Text(text = "Log In", color = Color.White, fontSize = 20.sp)
         }
+
 
         Spacer(modifier = Modifier.height(16.dp))
 

@@ -1,8 +1,12 @@
 package com.example.seniorshome
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -21,8 +25,37 @@ import com.example.seniorshome.ui.theme.SeniorsHomeTheme
 import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
+
+    // Define the permission launcher for SMS
+    private lateinit var requestSmsPermissionLauncher: ActivityResultLauncher<String>
+
+    // State for permission result
+    private var isSmsPermissionGranted by mutableStateOf(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Initialize the permission launcher for requesting SMS permission
+        requestSmsPermissionLauncher = registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) { isGranted: Boolean ->
+            isSmsPermissionGranted = isGranted
+            if (isGranted) {
+                // Permission granted, you can now send SMS
+                // You may want to show a success message here or proceed with the task
+            } else {
+                // Permission denied, handle accordingly (e.g., show a message to the user)
+                // You can show a snackbar or a dialog to inform the user
+            }
+        }
+
+        // Request SMS permission if not granted
+        if (!hasSmsPermission()) {
+            requestSmsPermissionLauncher.launch(Manifest.permission.SEND_SMS)
+        } else {
+            isSmsPermissionGranted = true  // SMS permission is already granted
+        }
+
         setContent {
             SeniorsHomeTheme {
                 // Create NavController for navigation
@@ -39,16 +72,20 @@ class MainActivity : ComponentActivity() {
                     composable("register") { RegisterScreen(navController = navController) }
                     composable("senior_screen") { SeniorScreen(navController = navController) }
                     composable("dashboard") { DashboardScreen(navController = navController) }
-                    composable("addtask") { AddTaskScreen(navController = navController) } // AddTaskScreen navigation
+                    composable("addtask") { AddTaskScreen(navController = navController) }
                     composable("medicine") { MedicationScreen(navController = navController) }
                     composable("notification") { NotificationScreen(navController = navController) }
                     composable("profile") { ProfileScreen(navController = navController) }
                     composable("addmedicationscreen") { AddMedicationScreen(navController = navController) }
                     composable("dialog_screen") { DialogScreen(navController = navController, onDismiss = {}, onTaskSelected = {}, onMedicationSelected = {}) }
                 }
-
             }
         }
+    }
+
+    // Check if permission is granted
+    private fun hasSmsPermission(): Boolean {
+        return checkSelfPermission(Manifest.permission.SEND_SMS) == PackageManager.PERMISSION_GRANTED
     }
 }
 

@@ -39,6 +39,7 @@ fun ProfileScreen(navController: NavController) {
     val openLogoutDialog = remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+    val auth = FirebaseAuth.getInstance()
 
     Box(
         modifier = Modifier
@@ -56,34 +57,34 @@ fun ProfileScreen(navController: NavController) {
             LogoutConfirmationDialog(
                 onDismiss = { openLogoutDialog.value = false },
                 onConfirm = {
-                    FirebaseAuth.getInstance().signOut()
-                    navController.navigate("login") {
-                        popUpTo("login") { inclusive = true }
-                    }
+                    auth.signOut()
+                    unauthenticateUser(navController)
                     coroutineScope.launch {
-                        // Show Snackbar
                         snackbarHostState.showSnackbar(
                             message = "Logout successful",
-                            duration = SnackbarDuration.Indefinite // Keeps it visible until dismissed
+                            duration = SnackbarDuration.Indefinite
                         )
-
-                        // Wait for 15 seconds before dismissing
-                        delay(15000L)
+                        delay(15000L) // Wait for 15 seconds before dismissing
                         snackbarHostState.currentSnackbarData?.dismiss()
                     }
-
                     openLogoutDialog.value = false
                 }
             )
         }
 
-        // SnackbarHost to display Snackbar at the bottom
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(16.dp)
         )
+    }
+}
+
+fun unauthenticateUser(navController: NavController) {
+    // Navigate back to the login screen
+    navController.navigate("login") {
+        popUpTo("login") { inclusive = true }
     }
 }
 

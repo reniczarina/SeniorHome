@@ -25,9 +25,11 @@ import com.google.firebase.database.FirebaseDatabase
 import android.content.Intent
 import android.provider.MediaStore
 import android.app.Activity
+import android.media.MediaPlayer
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.platform.LocalContext
 
 // Request code for picking an audio file
 private const val PICK_AUDIO_REQUEST_CODE = 1
@@ -36,6 +38,7 @@ private const val PICK_AUDIO_REQUEST_CODE = 1
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddMedicationScreen(navController: NavController) {
+    val context = LocalContext.current
     val database: DatabaseReference = FirebaseDatabase.getInstance().getReference("medication")
 
     var medicationName by remember { mutableStateOf("") }
@@ -45,6 +48,7 @@ fun AddMedicationScreen(navController: NavController) {
     var familyNotificationEnabled by remember { mutableStateOf(false) }
     var familyEmail by remember { mutableStateOf("") }
     var selectedDays by remember { mutableStateOf(mutableListOf<String>()) }
+    var familyPhoneNumber by remember { mutableStateOf("") }
 
     // Dialog states
     var showTimePickerDialog by remember { mutableStateOf(false) }
@@ -58,6 +62,30 @@ fun AddMedicationScreen(navController: NavController) {
         // Dismiss the dialog after selection
         showTimePickerDialog = false
     }
+    var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
+
+    // Function to play sound
+    fun playSound(resId: Int) {
+        try {
+            // Release any previous instance of MediaPlayer if it exists
+            mediaPlayer?.stop()
+            mediaPlayer?.release()
+
+            // Create a new MediaPlayer and start the sound
+            mediaPlayer = MediaPlayer.create(context, resId).apply {
+                start()
+                setOnCompletionListener {
+                    release()
+                    mediaPlayer = null // Set to null after playback is complete
+                    Log.d("Sound", "Playback completed and MediaPlayer released.")
+                }
+            }
+            Log.d("Sound", "Sound played: $resId")
+        } catch (e: Exception) {
+            Log.e("Sound", "Error playing sound: ${e.message}")
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -90,7 +118,12 @@ fun AddMedicationScreen(navController: NavController) {
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.weight(1f))
-            IconButton(onClick = { navController.navigate("dashboard") }) {
+            IconButton(
+                onClick = {
+                    playSound(R.raw.dashboard) // Play sound
+                    navController.navigate("dashboard") // Navigate to dashboard
+                }
+            ) {
                 Icon(
                     imageVector = Icons.Filled.Home,
                     contentDescription = "Home",
@@ -152,7 +185,12 @@ fun AddMedicationScreen(navController: NavController) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(
                     checked = alarmSoundEnabled,
-                    onCheckedChange = { alarmSoundEnabled = it }
+                    onCheckedChange = { isChecked ->
+                        alarmSoundEnabled = isChecked
+                        if (isChecked) {
+                            playSound(R.raw.enablealarmsoundmedication) // Replace with the correct resource ID
+                        }
+                    }
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(text = "Enable Alarm Sound")
@@ -168,7 +206,12 @@ fun AddMedicationScreen(navController: NavController) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(
                         checked = familyNotificationEnabled,
-                        onCheckedChange = { familyNotificationEnabled = it }
+                        onCheckedChange = { isChecked ->
+                            familyNotificationEnabled = isChecked
+                            if (isChecked) {
+                                playSound(R.raw.notifymedicationmissed) // Replace with the correct resource ID
+                            }
+                        }
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(text = "Notify Family if Missed")
@@ -177,7 +220,7 @@ fun AddMedicationScreen(navController: NavController) {
                     OutlinedTextField(
                         value = familyEmail,
                         onValueChange = { familyEmail = it },
-                        label = { Text("Family's Email") },
+                        label = { Text("Family's Phone Number") },
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                         singleLine = true,
@@ -199,7 +242,10 @@ fun AddMedicationScreen(navController: NavController) {
 
         // Save Button
         Button(
-            onClick = { showSaveDialog = true },
+            onClick = {
+                playSound(R.raw.medicationconfirmation) // Replace with the correct resource ID
+                showSaveDialog = true
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 8.dp),
@@ -227,14 +273,25 @@ fun AddMedicationScreen(navController: NavController) {
                             name = medicationName,
                             time = selectedTime,
                             days = selectedDays,  // Pass the list of selected days directly
-                            isOn = true,
+                            isOn = false,
                             alarmEnabled = alarmSoundEnabled,
                             alarmSound = selectedAlarmSound,
-                            notifyFamily = familyNotificationEnabled
+                            familyPhoneNumber = if (familyNotificationEnabled) familyPhoneNumber else ""
                         )
 
                         saveMedicationToFirebase(database, medication)
-                        navController.navigate("dashboard")
+
+                        // Schedule the alarm after saving the task to Firebase
+                        scheduleAlarm(
+                            context = context,
+                            taskName = medicationName,
+                            taskTime = selectedTime,
+                            alarmSoundUri = selectedAlarmSound,
+                            days = selectedDays, // Pass the list of selected days
+                            phoneNumber = familyPhoneNumber
+                        )
+
+                        navController.navigate("medicine")
                         showSaveDialog = false
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0B4413))
@@ -325,10 +382,39 @@ fun AlarmSoundSelector(selectedAlarmSound: String, onSoundSelected: (String) -> 
 fun MedicationSelectDaysDropdown(selectedDays: MutableList<String>) {
     val daysOfWeek = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "Everyday")
     var expanded by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
+
+    // Function to play sound
+    fun playSound(resId: Int) {
+        try {
+            mediaPlayer?.stop()
+            mediaPlayer?.release()
+
+            mediaPlayer = MediaPlayer.create(context, resId).apply {
+                start()
+                setOnCompletionListener {
+                    release()
+                    mediaPlayer = null // Set to null after playback completes
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("Sound", "Error playing sound: ${e.message}")
+        }
+    }
 
     Column {
-        TextButton(onClick = { expanded = true }) {
-            Text("Select Days", fontStyle = FontStyle.Italic, color = Color(0xFF0B4413))
+        TextButton(
+            onClick = {
+                expanded = true
+                playSound(R.raw.selectdaysmedication) // Replace with the correct resource ID
+            }
+        ) {
+            Text(
+                text = "Select Days",
+                fontStyle = FontStyle.Italic,
+                color = Color(0xFF0B4413)
+            )
         }
         DropdownMenu(
             expanded = expanded,
