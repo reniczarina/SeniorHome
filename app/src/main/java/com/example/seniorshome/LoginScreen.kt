@@ -37,14 +37,22 @@ import com.google.firebase.auth.FirebaseAuth
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(navController: NavController) {
-    val auth = FirebaseAuth.getInstance()
     val context = LocalContext.current
+    val auth = FirebaseAuth.getInstance()
+
     val emailUsername = remember { mutableStateOf("") }
     val password = remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var showForgotPasswordDialog by remember { mutableStateOf(false) }
-    var passwordVisible by remember { mutableStateOf(false) }
-    val textFieldColor = Color(0xFFACDDB7)
+    val passwordVisible = remember { mutableStateOf(false) }
+    val confirmPasswordVisible = remember { mutableStateOf(false) }
+
+    // Controller for handling the login logic
+    val controller = remember { LoginController(view = object : LoginView {
+        override fun showErrorMessage(message: String) {
+            errorMessage = message
+        }
+    }, auth = auth) }
 
     Column(
         modifier = Modifier
@@ -77,7 +85,7 @@ fun LoginScreen(navController: NavController) {
             shape = RoundedCornerShape(8.dp),
             singleLine = true,
             colors = TextFieldDefaults.textFieldColors(
-                containerColor = textFieldColor,
+                containerColor = Color(0xFFACDDB7),
                 focusedIndicatorColor = Color(0xFF004d00),
                 unfocusedIndicatorColor = Color.Transparent,
                 cursorColor = Color.Black
@@ -91,20 +99,21 @@ fun LoginScreen(navController: NavController) {
             label = { Text("Password", color = Color.Gray) },
             leadingIcon = { Icon(Icons.Default.Lock, contentDescription = "Lock Icon", tint = Color.Gray) },
             trailingIcon = {
-                val icon = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility
-                Icon(
-                    imageVector = icon,
-                    contentDescription = if (passwordVisible) "Hide Password" else "Show Password",
-                    tint = Color.Gray,
-                    modifier = Modifier.clickable { passwordVisible = !passwordVisible }
-                )
+                IconButton(onClick = { passwordVisible.value = !passwordVisible.value }) {
+                    val icon = if (passwordVisible.value) {
+                        Icons.Default.Visibility // Show password icon
+                    } else {
+                        Icons.Default.VisibilityOff // Hide password icon
+                    }
+                    Icon(icon, contentDescription = "Toggle password visibility", tint = Color.Gray)
+                }
             },
             modifier = Modifier.fillMaxWidth(0.85f).padding(bottom = 8.dp),
             shape = RoundedCornerShape(8.dp),
             singleLine = true,
-            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            visualTransformation = if (passwordVisible.value) VisualTransformation.None else PasswordVisualTransformation(),
             colors = TextFieldDefaults.textFieldColors(
-                containerColor = textFieldColor,
+                containerColor = Color(0xFFACDDB7),
                 focusedIndicatorColor = Color(0xFF004d00),
                 unfocusedIndicatorColor = Color.Transparent,
                 cursorColor = Color.Black
@@ -121,7 +130,7 @@ fun LoginScreen(navController: NavController) {
             color = Color(0xFF004d00),
             modifier = Modifier
                 .clickable { showForgotPasswordDialog = true }
-                .padding(bottom = 4.dp)  // Optional: adds space between text and line
+                .padding(bottom = 4.dp)
                 .background(
                     color = Color.Transparent,
                     shape = MaterialTheme.shapes.small
@@ -136,35 +145,12 @@ fun LoginScreen(navController: NavController) {
                 }
         )
 
-
-
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(
             onClick = {
-                if (emailUsername.value.isEmpty() || password.value.isEmpty()) {
-                    errorMessage = "Please fill in all fields."
-                    return@Button
-                }
-
-                auth.signInWithEmailAndPassword(emailUsername.value, password.value)
-                    .addOnCompleteListener { task ->
-                        if (task.isSuccessful) {
-
-                            val mediaPlayer = MediaPlayer.create(context, R.raw.welcome)
-                            mediaPlayer.start()
-                            mediaPlayer.setOnCompletionListener { mediaPlayer.release() }
-
-                            Toast.makeText(context, "Login successful", Toast.LENGTH_SHORT).show()
-                            navController.navigate("dashboard") {
-                                popUpTo("login") { inclusive = true }
-                            }
-                        } else {
-                            errorMessage = "Invalid email or password. Please try again."
-                        }
-                    }
-            }
-            ,
+                controller.handleLogin(emailUsername.value, password.value, navController, context)
+            },
             shape = RoundedCornerShape(50),
             modifier = Modifier
                 .fillMaxWidth(0.85f)
@@ -173,7 +159,6 @@ fun LoginScreen(navController: NavController) {
         ) {
             Text(text = "Log In", color = Color.White, fontSize = 20.sp)
         }
-
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -186,22 +171,15 @@ fun LoginScreen(navController: NavController) {
                 modifier = Modifier.clickable { navController.navigate("register") }
             )
         }
+    }
 
-        if (showForgotPasswordDialog) {
-            ForgotPasswordDialog(
-                onDismiss = { showForgotPasswordDialog = false },
-                onSendResetLink = { email ->
-                    auth.sendPasswordResetEmail(email).addOnCompleteListener { task ->
-                        if (task.isSuccessful) {
-                            Toast.makeText(context, "Reset link sent to $email", Toast.LENGTH_SHORT).show()
-                        } else {
-                            Toast.makeText(context, "Error: ${task.exception?.message}", Toast.LENGTH_SHORT).show()
-                        }
-                        showForgotPasswordDialog = false
-                    }
-                }
-            )
-        }
+    if (showForgotPasswordDialog) {
+        ForgotPasswordDialog(
+            onDismiss = { showForgotPasswordDialog = false },
+            onSendResetLink = { email ->
+                controller.handlePasswordReset(email, context)
+            }
+        )
     }
 }
 

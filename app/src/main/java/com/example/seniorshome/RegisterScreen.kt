@@ -9,7 +9,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,19 +23,16 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
-import com.example.seniorshome.ui.theme.SeniorsHomeTheme
-import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RegisterScreen(navController: NavController) {
-    val auth = FirebaseAuth.getInstance()
+fun RegisterScreen(navController: NavController, controller: RegisterScreenController) {
     val context = LocalContext.current
+    val passwordVisible = remember { mutableStateOf(false) }
+    val confirmPasswordVisible = remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -57,114 +57,82 @@ fun RegisterScreen(navController: NavController) {
             color = Color(0xFF004d00),
             modifier = Modifier.padding(bottom = 32.dp)
         )
-
-        val email = remember { mutableStateOf("") }
-        val password = remember { mutableStateOf("") }
-        val confirmPassword = remember { mutableStateOf("") }
-        var errorMessage by remember { mutableStateOf<String?>(null) }
-
-        val textFieldColor = Color(0xFFACDDB7)
-        val iconTintColor = Color.Gray
-
-        // Show/hide password states
-        var passwordVisible by remember { mutableStateOf(false) }
-        var confirmPasswordVisible by remember { mutableStateOf(false) }
-
-
-        // Email Field with Icon
         TextField(
-            value = email.value,
-            onValueChange = { email.value = it },
-            label = { Text("Email Address", color = Color.Gray) },
-            leadingIcon = {
-                Icon(Icons.Filled.Email, contentDescription = "Email Icon", tint = iconTintColor)
-            },
-            modifier = Modifier
-                .fillMaxWidth(0.85f)
-                .padding(bottom = 8.dp),
+            value = controller.email.value,
+            onValueChange = { controller.email.value = it },
+            label = { Text("Email", color = Color.Gray) },
+            leadingIcon = { Icon(Icons.Default.Email, contentDescription = "Email Icon", tint = Color.Gray) },
+            modifier = Modifier.fillMaxWidth(0.85f).padding(bottom = 8.dp),
             shape = RoundedCornerShape(8.dp),
             singleLine = true,
             colors = TextFieldDefaults.textFieldColors(
-                containerColor = textFieldColor,
-                focusedIndicatorColor = Color.Black,
-                unfocusedIndicatorColor = Color.Black,
-                cursorColor = Color.White,
-                focusedLabelColor = Color.White,
-                unfocusedLabelColor = Color.White
+                containerColor = Color(0xFFACDDB7),
+                focusedIndicatorColor = Color(0xFF004d00),
+                unfocusedIndicatorColor = Color.Transparent,
+                cursorColor = Color.Black
             ),
             textStyle = androidx.compose.ui.text.TextStyle(color = Color.Black)
         )
-
-        // Password Field with show/hide icon
+        // Password field with show/hide toggle
         TextField(
-            value = password.value,
-            onValueChange = { password.value = it },
+            value = controller.password.value,
+            onValueChange = { controller.password.value = it },
             label = { Text("Password", color = Color.Gray) },
-            leadingIcon = {
-                Icon(Icons.Filled.Lock, contentDescription = "Password Icon", tint = iconTintColor)
-            },
+            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = "Lock Icon", tint = Color.Gray) },
             trailingIcon = {
-                IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                    Icon(
-                        imageVector = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                        contentDescription = if (passwordVisible) "Hide Password" else "Show Password",
-                        tint = Color.Gray
-                    )
+                IconButton(onClick = { passwordVisible.value = !passwordVisible.value }) {
+                    val icon = if (passwordVisible.value) {
+                        Icons.Default.Visibility // Show password icon
+                    } else {
+                        Icons.Default.VisibilityOff // Hide password icon
+                    }
+                    Icon(icon, contentDescription = "Toggle password visibility", tint = Color.Gray)
                 }
             },
-            modifier = Modifier
-                .fillMaxWidth(0.85f)
-                .padding(bottom = 8.dp),
+            modifier = Modifier.fillMaxWidth(0.85f).padding(bottom = 8.dp),
             shape = RoundedCornerShape(8.dp),
             singleLine = true,
-            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            visualTransformation = if (passwordVisible.value) VisualTransformation.None else PasswordVisualTransformation(),
             colors = TextFieldDefaults.textFieldColors(
-                containerColor = textFieldColor,
-                focusedIndicatorColor = Color.Black,
-                unfocusedIndicatorColor = Color.Black,
-                cursorColor = Color.White,
-                focusedLabelColor = Color.White,
-                unfocusedLabelColor = Color.White
+                containerColor = Color(0xFFACDDB7),
+                focusedIndicatorColor = Color(0xFF004d00),
+                unfocusedIndicatorColor = Color.Transparent,
+                cursorColor = Color.Black
             ),
             textStyle = androidx.compose.ui.text.TextStyle(color = Color.Black)
         )
 
-        // Confirm Password Field with show/hide icon
+        // Confirm Password field with show/hide toggle
         TextField(
-            value = confirmPassword.value,
-            onValueChange = { confirmPassword.value = it },
+            value = controller.confirmPassword.value,
+            onValueChange = { controller.confirmPassword.value = it },
             label = { Text("Confirm Password", color = Color.Gray) },
-            leadingIcon = {
-                Icon(Icons.Filled.Lock, contentDescription = "Confirm Password Icon", tint = iconTintColor)
-            },
+            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = "Lock Icon", tint = Color.Gray) },
             trailingIcon = {
-                IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
-                    Icon(
-                        imageVector = if (confirmPasswordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                        contentDescription = if (confirmPasswordVisible) "Hide Confirm Password" else "Show Confirm Password",
-                        tint = Color.Gray
-                    )
+                IconButton(onClick = { confirmPasswordVisible.value = !confirmPasswordVisible.value }) {
+                    val icon = if (confirmPasswordVisible.value) {
+                        Icons.Default.Visibility // Show password icon
+                    } else {
+                        Icons.Default.VisibilityOff // Hide password icon
+                    }
+                    Icon(icon, contentDescription = "Toggle confirm password visibility", tint = Color.Gray)
                 }
             },
-            modifier = Modifier
-                .fillMaxWidth(0.85f)
-                .padding(bottom = 16.dp),
+            modifier = Modifier.fillMaxWidth(0.85f).padding(bottom = 8.dp),
             shape = RoundedCornerShape(8.dp),
             singleLine = true,
-            visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+            visualTransformation = if (confirmPasswordVisible.value) VisualTransformation.None else PasswordVisualTransformation(),
             colors = TextFieldDefaults.textFieldColors(
-                containerColor = textFieldColor,
-                focusedIndicatorColor = Color.Black,
-                unfocusedIndicatorColor = Color.Black,
-                cursorColor = Color.White,
-                focusedLabelColor = Color.White,
-                unfocusedLabelColor = Color.White
+                containerColor = Color(0xFFACDDB7),
+                focusedIndicatorColor = Color(0xFF004d00),
+                unfocusedIndicatorColor = Color.Transparent,
+                cursorColor = Color.Black
             ),
             textStyle = androidx.compose.ui.text.TextStyle(color = Color.Black)
         )
 
-        // Display error message if there is an error
-        errorMessage?.let {
+
+        controller.errorMessage.value?.let {
             Text(
                 text = it,
                 color = Color.Red,
@@ -174,18 +142,9 @@ fun RegisterScreen(navController: NavController) {
 
         Button(
             onClick = {
-                if (password.value == confirmPassword.value) {
-                    auth.createUserWithEmailAndPassword(email.value, password.value)
-                        .addOnCompleteListener { task ->
-                            if (task.isSuccessful) {
-                                Toast.makeText(context, "Account created successfully", Toast.LENGTH_SHORT).show()
-                                navController.navigate("login")
-                            } else {
-                                errorMessage = task.exception?.message ?: "Registration failed"
-                            }
-                        }
-                } else {
-                    errorMessage = "Passwords do not match"
+                controller.registerUser {
+                    Toast.makeText(context, "Account created successfully", Toast.LENGTH_SHORT).show()
+                    navController.navigate("login")
                 }
             },
             shape = RoundedCornerShape(50),
@@ -213,13 +172,5 @@ fun RegisterScreen(navController: NavController) {
                     .clickable { navController.navigate("login") }
             )
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun RegisterScreenPreview() {
-    SeniorsHomeTheme {
-        RegisterScreen(navController = rememberNavController())
     }
 }

@@ -68,137 +68,154 @@ class NotificationViewModel(application: Application) : AndroidViewModel(applica
     }
 }
 
-
-@Composable
-fun NotificationScreen(navController: NavController, viewModel: NotificationViewModel = viewModel()) {
-    val notifications by viewModel.notifications.collectAsState()
-    var showDeleteDialog by remember { mutableStateOf(false) }
-    var notificationToDelete by remember { mutableStateOf<String?>(null) }
-    val context = LocalContext.current
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White),
-        verticalArrangement = Arrangement.SpaceBetween
+class NotificationPage {
+    @Composable
+    fun NotificationScreen(
+        navController: NavController,
+        viewModel: NotificationViewModel = viewModel()
     ) {
-        // Header
-        NotificationHeader()
+        val notifications by viewModel.notifications.collectAsState()
+        var showDeleteDialog by remember { mutableStateOf(false) }
+        var notificationToDelete by remember { mutableStateOf<String?>(null) }
+        val context = LocalContext.current
 
-        // Notifications list
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = "Notifications",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF004d00),
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            )
-
-            NotificationList(
-                notifications = notifications,
-                onDeleteNotification = { notification ->
-                    notificationToDelete = notification
-                    showDeleteDialog = true
-                }
-            )
-        }
-
-        // Bottom Navigation
-        BottomNavigationWithExpandableFAB(navController = navController, currentScreen = "notification")
-    }
-
-    // Delete confirmation dialog
-    if (showDeleteDialog && notificationToDelete != null) {
-        AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete this notification?", color = Color.Black) },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        val mediaPlayer = MediaPlayer.create(context, R.raw.deletenotification)
-                        mediaPlayer.start()
-                        mediaPlayer.setOnCompletionListener { mediaPlayer.release() }
-                        viewModel.deleteNotification(notificationToDelete!!)
-                        showDeleteDialog = false
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
-                ) {
-                    Text("Delete", color = Color.White)
-                }
-            },
-            dismissButton = { TextButton(onClick = { showDeleteDialog = false }) { Text("Cancel", color = Color.Black) } },
-            containerColor = Color.White,
-            modifier = Modifier.size(363.dp, 150.dp)
-        )
-    }
-}
-
-@Composable
-fun NotificationHeader() {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.Start
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Image(
-                painter = painterResource(id = R.drawable.shlogo),
-                contentDescription = "Logo",
-                modifier = Modifier.size(40.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "Seniors Home",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF004d00)
-            )
-        }
-        HorizontalDivider(
-            modifier = Modifier.padding(vertical = 5.dp),
-            thickness = 1.dp,
-            color = Color.Gray
-        )
-    }
-}
-
-@Composable
-fun NotificationList(notifications: List<String>, onDeleteNotification: (String) -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp)
-            .verticalScroll(rememberScrollState())
-    ) {
-        notifications.forEach { notification ->
-            NotificationItem(notification = notification, onDelete = { onDeleteNotification(notification) })
-            Spacer(modifier = Modifier.height(8.dp))
-        }
-    }
-}
-
-@Composable
-fun NotificationItem(notification: String, onDelete: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color(0xFF004d00), shape = MaterialTheme.shapes.medium)
-            .padding(16.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.White),
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(
-                text = notification,
-                color = Color.White,
-                fontSize = 16.sp,
-                modifier = Modifier.weight(1f)
+            // Header
+            NotificationHeader()
+
+            // Notifications list
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Notifications",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF004d00),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+
+                NotificationList(
+                    notifications = notifications,
+                    onDeleteNotification = { notification ->
+                        notificationToDelete = notification
+                        showDeleteDialog = true
+                    }
+                )
+            }
+
+            // Bottom Navigation
+            BottomNavigationWithExpandableFAB(
+                navController = navController,
+                currentScreen = "notification"
             )
-            IconButton(onClick = onDelete) {
-                Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete", tint = Color.Red)
+        }
+
+        // Delete confirmation dialog
+        if (showDeleteDialog && notificationToDelete != null) {
+            AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                title = { Text("Delete this notification?", color = Color.Black) },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            val mediaPlayer = MediaPlayer.create(context, R.raw.deletenotification)
+                            mediaPlayer.start()
+                            mediaPlayer.setOnCompletionListener { mediaPlayer.release() }
+                            viewModel.deleteNotification(notificationToDelete!!)
+                            showDeleteDialog = false
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                    ) {
+                        Text("Delete", color = Color.White)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        showDeleteDialog = false
+                    }) { Text("Cancel", color = Color.Black) }
+                },
+                containerColor = Color.White,
+                modifier = Modifier.size(363.dp, 150.dp)
+            )
+        }
+    }
+
+    @Composable
+    fun NotificationHeader() {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.Start
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Image(
+                    painter = painterResource(id = R.drawable.shlogo),
+                    contentDescription = "Logo",
+                    modifier = Modifier.size(40.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Seniors Home",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF004d00)
+                )
+            }
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 5.dp),
+                thickness = 1.dp,
+                color = Color.Gray
+            )
+        }
+    }
+
+    @Composable
+    fun NotificationList(notifications: List<String>, onDeleteNotification: (String) -> Unit) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
+                .verticalScroll(rememberScrollState())
+        ) {
+            notifications.forEach { notification ->
+                NotificationItem(
+                    notification = notification,
+                    onDelete = { onDeleteNotification(notification) })
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+        }
+    }
+
+    @Composable
+    fun NotificationItem(notification: String, onDelete: () -> Unit) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFF004d00), shape = MaterialTheme.shapes.medium)
+                .padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = notification,
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        tint = Color.Red
+                    )
+                }
             }
         }
     }

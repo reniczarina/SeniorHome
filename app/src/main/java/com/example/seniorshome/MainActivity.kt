@@ -22,62 +22,52 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.seniorshome.ui.theme.SeniorsHomeTheme
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
 
-    // Define the permission launcher for SMS
     private lateinit var requestSmsPermissionLauncher: ActivityResultLauncher<String>
-
-    // State for permission result
     private var isSmsPermissionGranted by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val auth = FirebaseAuth.getInstance()
 
         // Initialize the permission launcher for requesting SMS permission
         requestSmsPermissionLauncher = registerForActivityResult(
             ActivityResultContracts.RequestPermission()
         ) { isGranted: Boolean ->
             isSmsPermissionGranted = isGranted
-            if (isGranted) {
-                // Permission granted, you can now send SMS
-                // You may want to show a success message here or proceed with the task
-            } else {
-                // Permission denied, handle accordingly (e.g., show a message to the user)
-                // You can show a snackbar or a dialog to inform the user
-            }
         }
 
         // Request SMS permission if not granted
         if (!hasSmsPermission()) {
             requestSmsPermissionLauncher.launch(Manifest.permission.SEND_SMS)
         } else {
-            isSmsPermissionGranted = true  // SMS permission is already granted
+            isSmsPermissionGranted = true
         }
 
         setContent {
             SeniorsHomeTheme {
-                // Create NavController for navigation
                 val navController = rememberNavController()
+                val registerScreenController = RegisterScreenController(auth)
 
-                // Define the navigation graph
-                NavHost(
-                    navController = navController,
-                    startDestination = "splash_screen",  // Start with SplashScreen
-                ) {
+
+                NavHost(navController = navController, startDestination = "splash_screen") {
                     composable("splash_screen") { SplashScreen(navController) }
-                    composable("get_started") { GetStartedScreen(navController = navController) }
-                    composable("login") { LoginScreen(navController = navController) }
-                    composable("register") { RegisterScreen(navController = navController) }
-                    composable("senior_screen") { SeniorScreen(navController = navController) }
-                    composable("dashboard") { DashboardScreen(navController = navController) }
-                    composable("addtask") { AddTaskScreen(navController = navController) }
-                    composable("medicine") { MedicationScreen(navController = navController) }
-                    composable("notification") { NotificationScreen(navController = navController) }
-                    composable("profile") { ProfileScreen(navController = navController) }
-                    composable("addmedicationscreen") { AddMedicationScreen(navController = navController) }
-                    composable("dialog_screen") { DialogScreen(navController = navController, onDismiss = {}, onTaskSelected = {}, onMedicationSelected = {}) }
+                    composable("get_started") { GetStartedScreen(navController) }
+                    composable("login") { LoginScreen(navController) }
+                    composable("register") { RegisterScreen(navController, registerScreenController) }
+                    composable("senior_screen") { SeniorScreen(navController) }
+                    composable("dashboard") { TaskPage().DashboardScreen(navController) }
+                    composable("addtask") { AddTask().AddTaskScreen(navController) }
+                    composable("medicine") { MedicationPage().MedicationScreen(navController) }
+                    composable("notification") { NotificationPage().NotificationScreen(navController) }
+                    composable("profile") { ProfilePage().ProfileScreen(navController) }
+                    composable("addmedicationscreen") { AddMedication().AddMedicationScreen(navController) }
+                    composable("dialog_screen") { DialogScreen(navController, onDismiss = {}, onTaskSelected = {}, onMedicationSelected = {}) }
                 }
             }
         }
@@ -129,11 +119,13 @@ fun SplashScreen(navController: NavController) {
 
             // Linear Progress Indicator
             LinearProgressIndicator(
-                progress = progress, // Set the progress state
+                progress = {
+                    progress // Set the progress state
+                },
                 modifier = Modifier
                     .fillMaxWidth(0.8f) // Make it 80% of the screen width
                     .height(4.dp), // Adjust height as needed
-                color = Color(0xFFF6F6F6) // Set the color of the progress indicator
+                color = Color(0xFFF6F6F6), // Set the color of the progress indicator
             )
         }
     }
@@ -145,3 +137,4 @@ fun SplashScreenPreview() {
     val navController = rememberNavController()
     SplashScreen(navController)
 }
+  
